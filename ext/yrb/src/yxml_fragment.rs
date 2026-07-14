@@ -3,7 +3,7 @@ use crate::yxml_element::YXmlElement;
 use crate::yxml_text::YXmlText;
 use magnus::{IntoValue, RArray, Ruby, Value};
 use std::cell::RefCell;
-use yrs::{GetString, XmlElementPrelim, XmlFragment, XmlFragmentRef, XmlNode};
+use yrs::{GetString, XmlElementPrelim, XmlFragment, XmlFragmentRef, XmlOut};
 
 #[magnus::wrap(class = "Y::XMLFragment")]
 pub(crate) struct YXmlFragment(pub(crate) RefCell<XmlFragmentRef>);
@@ -15,9 +15,9 @@ impl YXmlFragment {
     pub(crate) fn yxml_fragment_first_child(&self) -> Option<Value> {
         let ruby = unsafe { Ruby::get_unchecked() };
         self.0.borrow().first_child().map(|node| match node {
-            XmlNode::Element(element) => YXmlElement::from(element).into_value_with(&ruby),
-            XmlNode::Fragment(fragment) => YXmlFragment::from(fragment).into_value_with(&ruby),
-            XmlNode::Text(text) => YXmlText::from(text).into_value_with(&ruby),
+            XmlOut::Element(element) => YXmlElement::from(element).into_value_with(&ruby),
+            XmlOut::Fragment(fragment) => YXmlFragment::from(fragment).into_value_with(&ruby),
+            XmlOut::Text(text) => YXmlText::from(text).into_value_with(&ruby),
         })
     }
 
@@ -31,9 +31,9 @@ impl YXmlFragment {
         let tx = tx.as_ref().unwrap();
 
         self.0.borrow().get(tx, index).map(|node| match node {
-            XmlNode::Element(element) => YXmlElement::from(element).into_value_with(&ruby),
-            XmlNode::Fragment(fragment) => YXmlFragment::from(fragment).into_value_with(&ruby),
-            XmlNode::Text(text) => YXmlText::from(text).into_value_with(&ruby),
+            XmlOut::Element(element) => YXmlElement::from(element).into_value_with(&ruby),
+            XmlOut::Fragment(fragment) => YXmlFragment::from(fragment).into_value_with(&ruby),
+            XmlOut::Text(text) => YXmlText::from(text).into_value_with(&ruby),
         })
     }
 
@@ -60,9 +60,9 @@ impl YXmlFragment {
     pub(crate) fn yxml_fragment_parent(&self) -> Option<Value> {
         let ruby = unsafe { Ruby::get_unchecked() };
         self.0.borrow().parent().map(|item| match item {
-            XmlNode::Element(el) => YXmlElement::from(el).into_value_with(&ruby),
-            XmlNode::Fragment(fragment) => YXmlFragment::from(fragment).into_value_with(&ruby),
-            XmlNode::Text(text) => YXmlText::from(text).into_value_with(&ruby),
+            XmlOut::Element(el) => YXmlElement::from(el).into_value_with(&ruby),
+            XmlOut::Fragment(fragment) => YXmlFragment::from(fragment).into_value_with(&ruby),
+            XmlOut::Text(text) => YXmlText::from(text).into_value_with(&ruby),
         })
     }
 
@@ -112,9 +112,9 @@ impl YXmlFragment {
         let array = ruby.ary_new();
         for item in fragment.successors(tx) {
             let value = match item {
-                XmlNode::Element(el) => YXmlElement::from(el).into_value_with(&ruby),
-                XmlNode::Fragment(fragment) => YXmlFragment::from(fragment).into_value_with(&ruby),
-                XmlNode::Text(text) => YXmlText::from(text).into_value_with(&ruby),
+                XmlOut::Element(el) => YXmlElement::from(el).into_value_with(&ruby),
+                XmlOut::Fragment(fragment) => YXmlFragment::from(fragment).into_value_with(&ruby),
+                XmlOut::Text(text) => YXmlText::from(text).into_value_with(&ruby),
             };
             array.push(value).expect("cannot push value to array");
         }

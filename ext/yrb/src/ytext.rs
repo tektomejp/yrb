@@ -1,3 +1,4 @@
+use crate::utils::next_subscription_id;
 use crate::yattrs::YAttrs;
 use crate::ydiff::YDiff;
 use crate::yvalue::YValue;
@@ -134,10 +135,10 @@ impl YText {
         let attributes = ruby.to_symbol("attributes").to_static();
 
         // let mut error: Option<Error> = None;
-        let subscription_id = self
-            .0
+        let subscription_id = next_subscription_id();
+        self.0
             .borrow_mut()
-            .observe(move |transaction, text_event| {
+            .observe_with(subscription_id, move |transaction, text_event| {
                 let ruby = unsafe { Ruby::get_unchecked() };
                 let delta = text_event.delta(transaction);
                 let (_, errors): (Vec<_>, Vec<_>) = delta
@@ -203,8 +204,7 @@ impl YText {
                     // todo: make sure we respect errors and let the method fail by
                     //  by returning a Result containing an Error
                 }
-            })
-            .into();
+            });
 
         Ok(subscription_id)
     }

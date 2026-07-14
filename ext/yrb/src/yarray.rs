@@ -1,4 +1,4 @@
-use crate::utils::convert_yvalue_to_ruby_value;
+use crate::utils::{convert_yvalue_to_ruby_value, next_subscription_id};
 use crate::ytransaction::YTransaction;
 use crate::yvalue::YValue;
 use magnus::block::Proc;
@@ -79,10 +79,10 @@ impl YArray {
 
         // let mut error: Option<Error> = None;
 
-        let subscription_id =
-            self.0
-                .borrow_mut()
-                .observe(move |transaction, array_event| {
+        let subscription_id = next_subscription_id();
+        self.0
+            .borrow_mut()
+            .observe_with(subscription_id, move |transaction, array_event| {
                     let ruby = unsafe { Ruby::get_unchecked() };
                     let delta = array_event.delta(transaction);
                     // let mut changes = RArray::with_capacity(delta.len());
@@ -130,8 +130,7 @@ impl YArray {
 
                     // todo: make sure we respect errors and let the method fail by
                     //  by returning a Result containing an Error
-                })
-                .into();
+                });
 
         Ok(subscription_id)
     }

@@ -5,11 +5,8 @@ use magnus::{Float, Integer, IntoValue, RArray, RHash, RString, Ruby, Symbol, Va
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::sync::Arc;
-use yrs::types::Value as YrsValue;
-use yrs::{
-    Any, Array, Map, TextRef as YrsText, Transact, XmlElementRef as YrsXmlElement,
-    XmlTextRef as YrsXmlText,
-};
+use yrs::Out as YrsValue;
+use yrs::{Any, TextRef as YrsText, XmlElementRef as YrsXmlElement, XmlTextRef as YrsXmlText};
 
 pub(crate) struct YValue(pub(crate) RefCell<Value>);
 
@@ -165,33 +162,17 @@ impl From<Any> for YValue {
 }
 
 impl From<YrsValue> for YValue {
+    // yrs >= 0.18 dropped `Transact` for shared-ref types (`ArrayRef`/`MapRef`, ...) — only
+    // `Doc` can hand out a transaction now, and this conversion has no `Doc`/transaction handle
+    // to work with. Callers that already hold a `&TransactionMut` (i.e. every caller that can
+    // reach a `YrsValue::YArray`/`YMap`) must use `utils::convert_yvalue_to_ruby_value` instead,
+    // which takes that transaction explicitly.
     fn from(value: YrsValue) -> Self {
-        let ruby = unsafe { Ruby::get_unchecked() };
         match value {
             YrsValue::Any(val) => YValue::from(val),
             YrsValue::YText(text) => YValue::from(text),
             YrsValue::YXmlElement(el) => YValue::from(el),
             YrsValue::YXmlText(text) => YValue::from(text),
-            YrsValue::YArray(val) => {
-                let tx = val.transact();
-                let arr = ruby.ary_new();
-                for item in val.iter(&tx) {
-                    let val = YValue::from(item.clone());
-                    let val = *val.0.borrow();
-                    arr.push(val).expect("cannot push item event to array");
-                }
-                YValue::from(arr)
-            }
-            YrsValue::YMap(val) => {
-                let tx = val.transact();
-                let hash = ruby.hash_new();
-                for (key, value) in val.iter(&tx) {
-                    let val = YValue::from(value);
-                    let val = val.0.into_inner();
-                    hash.aset(key, val).expect("cannot insert into hash");
-                }
-                YValue::from(hash)
-            }
             v => panic!("cannot map complex yrs values to yvalue: {:?}", v),
         }
     }

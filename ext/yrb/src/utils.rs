@@ -1,13 +1,27 @@
 use crate::yvalue::YValue;
 use magnus::r_hash::ForEach::Continue;
 use magnus::{Error, RHash, RString, Ruby, Symbol, Value};
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
-use yrs::types::{Attrs, Value as YrsValue};
+use yrs::types::Attrs;
+use yrs::Out as YrsValue;
 use yrs::{Any, Array, Map, TransactionMut};
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub(crate) struct TypeConversionError;
+
+/// Generates a process-wide unique id to key an `observe_with`/`unobserve` subscription.
+///
+/// yrs 0.27 replaced the old auto-generated numeric `SubscriptionId` with an RAII
+/// [`yrs::Subscription`] drop-guard. Ruby callers of this binding still expect to receive an
+/// opaque `u32` handle from `*_observe` that they can later pass back into `*_unobserve`, so we
+/// mint our own id and subscribe with it via `observe_with`/`unobserve` (both keyed by anything
+/// `Into<Origin>`, which `u32` satisfies).
+pub(crate) fn next_subscription_id() -> u32 {
+    static COUNTER: AtomicU32 = AtomicU32::new(0);
+    COUNTER.fetch_add(1, Ordering::Relaxed)
+}
 
 pub(crate) fn indifferent_hash_key(key: Value) -> Option<String> {
     RString::from_value(key)

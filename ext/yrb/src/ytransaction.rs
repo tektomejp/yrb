@@ -29,26 +29,42 @@ impl<'doc> From<TransactionMut<'doc>> for YTransaction {
 impl YTransaction {
     pub(crate) fn ytransaction_apply_update(&self, update: Vec<u8>) -> Result<(), Error> {
         let ruby = Ruby::get().unwrap();
-        Update::decode_v1(update.as_slice())
+        let update = Update::decode_v1(update.as_slice()).map_err(|error| {
+            Error::new(
+                ruby.exception_runtime_error(),
+                format!("cannot decode update: {:?}", error),
+            )
+        })?;
+        self.transaction()
+            .as_mut()
+            .unwrap()
+            .apply_update(update)
             .map_err(|error| {
                 Error::new(
                     ruby.exception_runtime_error(),
-                    format!("cannot decode update: {:?}", error),
+                    format!("cannot integrate update: {:?}", error),
                 )
             })
-            .map(|u| self.transaction().as_mut().unwrap().apply_update(u))
     }
 
     pub(crate) fn ytransaction_apply_update_v2(&self, update: Vec<u8>) -> Result<(), Error> {
         let ruby = Ruby::get().unwrap();
-        Update::decode_v2(update.as_slice())
+        let update = Update::decode_v2(update.as_slice()).map_err(|error| {
+            Error::new(
+                ruby.exception_runtime_error(),
+                format!("cannot decode update: {:?}", error),
+            )
+        })?;
+        self.transaction()
+            .as_mut()
+            .unwrap()
+            .apply_update(update)
             .map_err(|error| {
                 Error::new(
                     ruby.exception_runtime_error(),
-                    format!("cannot decode update: {:?}", error),
+                    format!("cannot integrate update: {:?}", error),
                 )
             })
-            .map(|u| self.transaction().as_mut().unwrap().apply_update(u))
     }
 
     pub(crate) fn ytransaction_commit(&self) {
@@ -79,12 +95,11 @@ impl YTransaction {
             .map(YText::from)
     }
 
-    pub(crate) fn ytransaction_get_xml_element(&self, name: String) -> Option<YXmlElement> {
-        self.transaction()
-            .as_ref()
-            .unwrap()
-            .get_xml_element(name.as_str())
-            .map(YXmlElement::from)
+    // See `YDoc::ydoc_get_or_insert_xml_element`: yrs >= 0.18 no longer allows a root-level
+    // `XmlElementRef`, so a lookup by name can never find one. Always `None`, same as any other
+    // not-found lookup on this transaction.
+    pub(crate) fn ytransaction_get_xml_element(&self, _name: String) -> Option<YXmlElement> {
+        None
     }
 
     pub(crate) fn ytransaction_get_xml_fragment(&self, name: String) -> Option<YXmlFragment> {
@@ -95,12 +110,10 @@ impl YTransaction {
             .map(YXmlFragment::from)
     }
 
-    pub(crate) fn ytransaction_get_xml_text(&self, name: String) -> Option<YXmlText> {
-        self.transaction()
-            .as_ref()
-            .unwrap()
-            .get_xml_text(name.as_str())
-            .map(YXmlText::from)
+    // See `YDoc::ydoc_get_or_insert_xml_text`: same root-level restriction as
+    // `ytransaction_get_xml_element` above.
+    pub(crate) fn ytransaction_get_xml_text(&self, _name: String) -> Option<YXmlText> {
+        None
     }
 
     pub(crate) fn ytransaction_state_vector(&self) -> Vec<u8> {

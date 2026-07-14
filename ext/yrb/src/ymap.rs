@@ -1,10 +1,11 @@
-use crate::utils::{convert_yvalue_to_ruby_value, indifferent_hash_key};
+use crate::utils::{convert_yvalue_to_ruby_value, indifferent_hash_key, next_subscription_id};
 use crate::yvalue::YValue;
 use crate::YTransaction;
 use magnus::block::Proc;
 use magnus::{Error, RArray, RHash, Ruby, Value};
 use std::cell::RefCell;
-use yrs::types::{EntryChange, Value as YrsValue};
+use yrs::types::EntryChange;
+use yrs::Out as YrsValue;
 use yrs::{Any, Map, MapRef, Observable};
 
 #[magnus::wrap(class = "Y::Map")]
@@ -78,9 +79,10 @@ impl YMap {
         let change_inserted = ruby.to_symbol("inserted").as_static();
         let change_updated = ruby.to_symbol("updated").as_static();
         let change_removed = ruby.to_symbol("removed").as_static();
+        let subscription_id = next_subscription_id();
         self.0
             .borrow_mut()
-            .observe(move |transaction, map_event| {
+            .observe_with(subscription_id, move |transaction, map_event| {
                 let ruby = unsafe { Ruby::get_unchecked() };
                 let delta = map_event.keys(transaction);
                 let changes = ruby.ary_new_capa(delta.len());
@@ -137,8 +139,8 @@ impl YMap {
                 block
                     .call::<(RArray,), Value>((changes,))
                     .expect("cannot call block");
-            })
-            .into()
+            });
+        subscription_id
     }
     pub(crate) fn ymap_remove(&self, transaction: &YTransaction, key: Value) -> Option<Value> {
         let mut tx = transaction.transaction();
@@ -147,7 +149,7 @@ impl YMap {
         indifferent_hash_key(key)
             .map(|k| self.0.borrow().remove(tx, k.as_str()))
             .map(|v| v.unwrap_or(YrsValue::Any(Any::Undefined)))
-            .map(|v| *YValue::from(v).0.borrow())
+            .map(|v| *convert_yvalue_to_ruby_value(v, tx).0.borrow())
     }
     pub(crate) fn ymap_size(&self, transaction: &YTransaction) -> u32 {
         let tx = transaction.transaction();

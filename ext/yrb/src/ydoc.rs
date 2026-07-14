@@ -4,14 +4,16 @@ use crate::ytext::YText;
 use crate::yxml_element::YXmlElement;
 use crate::yxml_fragment::YXmlFragment;
 use crate::yxml_text::YXmlText;
+use crate::utils::next_subscription_id;
 use crate::YTransaction;
 use magnus::block::Proc;
 use magnus::{Error, Integer, RArray, Ruby, Value};
 use std::borrow::Borrow;
 use std::cell::RefCell;
+use yrs::block::ClientID;
 use yrs::updates::decoder::Decode;
 use yrs::updates::encoder::{Encoder, EncoderV2};
-use yrs::{Doc, OffsetKind, Options, ReadTxn, StateVector, SubscriptionId, Transact};
+use yrs::{Doc, OffsetKind, Options, ReadTxn, StateVector, Transact};
 
 #[magnus::wrap(class = "Y::Doc")]
 pub(crate) struct YDoc(pub(crate) RefCell<Doc>);
@@ -23,7 +25,8 @@ impl YDoc {
         let mut options = Options::default();
         if client_id.len() == 1 {
             let value = client_id.first().unwrap();
-            options.client_id = Integer::from_value(*value).unwrap().to_u64().unwrap();
+            options.client_id =
+                ClientID::new(Integer::from_value(*value).unwrap().to_u64().unwrap());
         }
         options.offset_kind = OffsetKind::Utf16;
 
@@ -76,9 +79,17 @@ impl YDoc {
         YText::from(text_ref)
     }
 
-    pub(crate) fn ydoc_get_or_insert_xml_element(&self, name: String) -> YXmlElement {
-        let xml_element_ref = self.0.borrow_mut().get_or_insert_xml_element(name.as_str());
-        YXmlElement::from(xml_element_ref) // ::into() maps to YXmlFragment instead of YXmlElement :-(
+    // yrs >= 0.18 dropped `RootRef` for `XmlElementRef`/`XmlTextRef`: only `XmlFragmentRef` may
+    // be a document root now (matching yjs, where `Y.XmlElement`/`Y.XmlText` were never valid
+    // top-level shared types). There is no compatible root-level `XmlElementRef` to hand back
+    // here any more, so we fail loudly instead of inventing a new, wire-incompatible encoding
+    // for what used to be a root `Y::XMLElement`. Callers should migrate to `get_xml_fragment`.
+    pub(crate) fn ydoc_get_or_insert_xml_element(&self, _name: String) -> Result<YXmlElement, Error> {
+        let ruby = Ruby::get().unwrap();
+        Err(Error::new(
+            ruby.exception_runtime_error(),
+            "root-level Y::XMLElement is no longer supported (yrs >= 0.18 only allows XMLFragment as a document root); use Y::Doc#get_xml_fragment instead",
+        ))
     }
 
     pub(crate) fn ydoc_get_or_insert_xml_fragment(&self, name: String) -> YXmlFragment {
@@ -86,9 +97,14 @@ impl YDoc {
         YXmlFragment::from(xml_fragment_ref)
     }
 
-    pub(crate) fn ydoc_get_or_insert_xml_text(&self, name: String) -> YXmlText {
-        let xml_text_ref = self.0.borrow().get_or_insert_xml_text(name.as_str());
-        YXmlText::from(xml_text_ref)
+    // See `ydoc_get_or_insert_xml_element` above: root-level `Y::XMLText` has no yrs >= 0.18
+    // equivalent either.
+    pub(crate) fn ydoc_get_or_insert_xml_text(&self, _name: String) -> Result<YXmlText, Error> {
+        let ruby = Ruby::get().unwrap();
+        Err(Error::new(
+            ruby.exception_runtime_error(),
+            "root-level Y::XMLText is no longer supported (yrs >= 0.18 only allows XMLFragment as a document root); use Y::Doc#get_xml_fragment instead",
+        ))
     }
 
     pub(crate) fn ydoc_transact(&self) -> YTransaction {
@@ -97,11 +113,12 @@ impl YDoc {
         YTransaction::from(transaction)
     }
 
-    pub(crate) fn ydoc_observe_update(&self, block: Proc) -> Result<SubscriptionId, Error> {
+    pub(crate) fn ydoc_observe_update(&self, block: Proc) -> Result<u32, Error> {
         let ruby = Ruby::get().unwrap();
+        let subscription_id = next_subscription_id();
         self.0
             .borrow()
-            .observe_update_v1(move |_tx, update_event| {
+            .observe_update_v1_with(subscription_id, move |_tx, update_event| {
                 let ruby = unsafe { Ruby::get_unchecked() };
                 let update = update_event.update.to_vec();
                 let update = ruby.ary_from_vec(update);
@@ -111,7 +128,7 @@ impl YDoc {
                     .call::<(RArray,), Value>(args)
                     .expect("cannot call update block");
             })
-            .map(|v| v.into())
+            .map(|()| subscription_id)
             .map_err(|err| Error::new(ruby.exception_runtime_error(), err.to_string()))
     }
 }

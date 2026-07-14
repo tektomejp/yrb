@@ -1,11 +1,3 @@
 [workspace]
 resolver = "2"
 members = ["ext/yrb"]
-
-# Redirect ALL yrs uses (yrb's direct dep + y-sync's transitive dep) to the
-# patched 0.17.4 fork carrying the apply_delete range-delete fix (backport of
-# upstream 97095f2, first released in yrs 0.26.0). This unifies to a single yrs
-# copy only because the fork keeps version 0.17.4 — a version bump could not be
-# patched in this way (y-sync 0.4.0 pins yrs 0.17.x).
-[patch.crates-io]
-yrs = { git = "https://github.com/NataleCatella/y-crdt", rev = "03be5476dd70c4206f3def956137e90dc056aedb" }
