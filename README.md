@@ -1,13 +1,17 @@
 <!-- FORK NOTICE -->
 > ## ⚠️ Downstream fork — not the upstream project
 >
-> This is a **maintenance fork** of [`y-crdt/yrb`](https://github.com/y-crdt/yrb) (the `y-rb` gem) at tag `v0.7.0` that exists for a single purpose: to build the gem against a **patched `yrs 0.17.4`** (branch [`patch/apply-delete-017-0.17.4`](../../tree/patch/apply-delete-017-0.17.4)).
+> Tektome's fork of [`y-crdt/yrb`](https://github.com/y-crdt/yrb), published as **`v0.8.0`**.
 >
-> **What changed:** only the workspace `Cargo.toml` (+ `Cargo.lock`). It adds a `[patch.crates-io]` redirecting `yrs` — both the direct dependency *and* `y-sync 0.4.0`'s transitive one — to [`NataleCatella/y-crdt@8e7100a`](https://github.com/NataleCatella/y-crdt/tree/backport/apply-delete-017). No binding/Rust code is modified; the backport keeps the `yrs` public API identical to stock 0.17.4.
+> **Why it exists:** the newest upstream release (`v0.7.0`) is pinned to `yrs 0.17.4`, which has an in-store range-delete bug — deleted Pages media reappears after reload (fixed upstream in `yrs 0.26.0`, commit `y-crdt/y-crdt@97095f2`). No released `y-rb` targets a modern `yrs`, so we maintain our own.
 >
-> **Why:** the upstream `y-rb 0.7.0` gem hard-pins the buggy `yrs 0.17.4` (a delete-set bug where deleted content reappears after reload — see the yrs fork notice). A plain gem-version bump can't fix it, and moving off 0.17.4 is blocked by the `y-sync` pin. This fork produces a native gem carrying the fix while staying on 0.17.4.
+> **What changed vs upstream `v0.7.0`:** the Ruby bindings (`ext/yrb`) are rebuilt on **stock `yrs 0.27.2`** from crates.io. That meant porting the bindings to the newer `yrs` API (`apply_update` now returns a `Result`; awareness moved from the separate `y-sync` crate into `yrs::sync`; `Subscription` is no longer generic) and dropping the `y-sync` dependency. We use the published `yrs` crate as-is — no `yrs` fork.
 >
-> **Not intended for upstream merge.**
+> **Version `0.8.0`:** a minor bump above upstream `0.7.0`, marking the modern-`yrs` rebuild and keeping it above the unpatched upstream gem.
+>
+> **Consumed by:** the Tektome `computer` app, which vendors the prebuilt gem (see that repo's `docs/pages-yrs-vendored-gem.md`).
+>
+> **Upstreamable:** this is a clean forward port and could be offered back to `y-crdt/yrb` as a pull request.
 <!-- END FORK NOTICE -->
 
 <p align="center">
