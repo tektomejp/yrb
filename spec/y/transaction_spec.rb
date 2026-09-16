@@ -28,11 +28,13 @@ RSpec.describe Y::Transaction do
     expect(text).to be_instance_of(Y::Text)
   end
 
-  it "creates XMLElement type" do
+  it "retrieves XMLElement through a fragment" do
     doc = Y::Doc.new
-    doc.get_xml_element("element") # creates text
+    doc.get_xml_fragment("fragment") << "element"
 
-    xml_element = doc.current_transaction { |tx| tx.get_xml_element("element") }
+    xml_element = doc.current_transaction do |tx|
+      tx.get_xml_fragment("fragment").first_child
+    end
 
     expect(xml_element).to be_instance_of(Y::XMLElement)
   end
@@ -48,11 +50,14 @@ RSpec.describe Y::Transaction do
     expect(xml_fragment).to be_instance_of(Y::XMLFragment)
   end
 
-  it "creates XMLText type" do
+  it "retrieves XMLText through a fragment" do
     doc = Y::Doc.new
-    doc.get_xml_text("text") # creates text
+    element = doc.get_xml_fragment("fragment") << "element"
+    element.push_text
 
-    xml_text = doc.current_transaction { |tx| tx.get_xml_text("text") }
+    xml_text = doc.current_transaction do |tx|
+      tx.get_xml_fragment("fragment").first_child.first_child
+    end
 
     expect(xml_text).to be_instance_of(Y::XMLText)
   end

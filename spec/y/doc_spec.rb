@@ -46,25 +46,25 @@ RSpec.describe Y::Doc do
     expect(text.to_s).to eql("Hello, World!")
   end
 
-  it "returns XMLElement" do
+  it "rejects root XMLElement with fragment guidance" do
     doc = described_class.new
-    xml_element = doc.get_xml_element("my xml element")
 
-    expect(xml_element).to be_instance_of(Y::XMLElement)
+    expect { doc.get_xml_element("my xml element") }
+      .to raise_error(RuntimeError, /root-level Y::XMLElement.*get_xml_fragment/)
   end
 
-  it "returns XMLText" do
+  it "rejects root XMLText with fragment guidance" do
     doc = described_class.new
-    xml_text = doc.get_xml_text("my xml text")
 
-    expect(xml_text).to be_instance_of(Y::XMLText)
+    expect { doc.get_xml_text("my xml text") }
+      .to raise_error(RuntimeError, /root-level Y::XMLText.*get_xml_fragment/)
   end
 
-  it "returns XMLText with initial input" do
+  it "rejects root XMLText with initial input" do
     doc = described_class.new
-    xml_text = doc.get_xml_text("my xml text", "Hello, World!")
 
-    expect(xml_text.to_s).to eql("Hello, World!")
+    expect { doc.get_xml_text("my xml text", "Hello, World!") }
+      .to raise_error(RuntimeError, /root-level Y::XMLText.*get_xml_fragment/)
   end
 
   it "returns state" do

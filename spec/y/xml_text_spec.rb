@@ -1,16 +1,16 @@
 # frozen_string_literal: true
 
 RSpec.describe Y::XMLText do
-  it "create XMLElement by name" do
+  it "creates XMLText inside an element" do
     doc = Y::Doc.new
-    xml_text = doc.get_xml_text("my text")
+    xml_text = (doc.get_xml_fragment("default") << "root").push_text
 
     expect(xml_text.attrs).to eq({})
   end
 
   it "appends a string to the end of the XMLText" do
     doc = Y::Doc.new
-    xml_text = doc.get_xml_text("my text")
+    xml_text = (doc.get_xml_fragment("default") << "root").push_text
 
     xml_text << "Hello, World!"
 
@@ -19,7 +19,7 @@ RSpec.describe Y::XMLText do
 
   it "uses push as alias for <<" do
     doc = Y::Doc.new
-    xml_text = doc.get_xml_text("my text")
+    xml_text = (doc.get_xml_fragment("default") << "root").push_text
 
     xml_text.push "Hello, World!"
 
@@ -28,7 +28,7 @@ RSpec.describe Y::XMLText do
 
   it "returns text attributes" do
     doc = Y::Doc.new
-    xml_text = doc.get_xml_text("my text")
+    xml_text = (doc.get_xml_fragment("default") << "root").push_text
 
     xml_text.attr_name = "Hello"
 
@@ -37,7 +37,7 @@ RSpec.describe Y::XMLText do
 
   it "formats text" do
     doc = Y::Doc.new
-    xml_text = doc.get_xml_text("my text")
+    xml_text = (doc.get_xml_fragment("default") << "root").push_text
     xml_text << "Hello, World!"
 
     attrs = { "format" => "bold" }
@@ -48,7 +48,7 @@ RSpec.describe Y::XMLText do
 
   it "inserts string at position" do
     doc = Y::Doc.new
-    xml_text = doc.get_xml_text("my xml text")
+    xml_text = (doc.get_xml_fragment("default") << "root").push_text
     xml_text.insert(0, "Hello, World!")
 
     expect(xml_text.to_s).to eq("Hello, World!")
@@ -56,7 +56,7 @@ RSpec.describe Y::XMLText do
 
   it "inserts string with attributes at position" do
     doc = Y::Doc.new
-    xml_text = doc.get_xml_text("my xml text")
+    xml_text = (doc.get_xml_fragment("default") << "root").push_text
 
     attrs = { format: "bold" }
     xml_text.insert(0, "Hello, World!", attrs)
@@ -66,7 +66,7 @@ RSpec.describe Y::XMLText do
 
   it "inserts Boolean at position" do
     doc = Y::Doc.new
-    xml_text = doc.get_xml_text("my xml text")
+    xml_text = (doc.get_xml_fragment("default") << "root").push_text
 
     xml_text.insert(0, true)
 
@@ -75,7 +75,7 @@ RSpec.describe Y::XMLText do
 
   it "inserts Integer at position" do
     doc = Y::Doc.new
-    xml_text = doc.get_xml_text("my xml text")
+    xml_text = (doc.get_xml_fragment("default") << "root").push_text
 
     xml_text.insert(0, 42)
 
@@ -84,7 +84,7 @@ RSpec.describe Y::XMLText do
 
   it "inserts Float at position" do
     doc = Y::Doc.new
-    xml_text = doc.get_xml_text("my xml text")
+    xml_text = (doc.get_xml_fragment("default") << "root").push_text
 
     xml_text.insert(0, 1.2)
 
@@ -93,7 +93,7 @@ RSpec.describe Y::XMLText do
 
   it "inserts Array at position" do
     doc = Y::Doc.new
-    xml_text = doc.get_xml_text("my xml text")
+    xml_text = (doc.get_xml_fragment("default") << "root").push_text
 
     xml_text.insert(0, [1, 2, 3])
 
@@ -102,7 +102,7 @@ RSpec.describe Y::XMLText do
 
   it "inserts Hash at position" do
     doc = Y::Doc.new
-    xml_text = doc.get_xml_text("my xml text")
+    xml_text = (doc.get_xml_fragment("default") << "root").push_text
 
     xml_text.insert(0, { hello: "World" })
 
@@ -111,7 +111,7 @@ RSpec.describe Y::XMLText do
 
   it "inserts embed at position with attributes" do
     doc = Y::Doc.new
-    xml_text = doc.get_xml_text("my xml text")
+    xml_text = (doc.get_xml_fragment("default") << "root").push_text
 
     attrs = { format: "bold" }
     xml_text.insert(0, { hello: "World" }, attrs)
@@ -121,7 +121,7 @@ RSpec.describe Y::XMLText do
 
   it "returns length of text" do
     doc = Y::Doc.new
-    xml_text = doc.get_xml_text("my xml text")
+    xml_text = (doc.get_xml_fragment("default") << "root").push_text
 
     xml_text << "Hello, World!"
 
@@ -130,7 +130,7 @@ RSpec.describe Y::XMLText do
 
   it "uses size as alias of length" do
     doc = Y::Doc.new
-    xml_text = doc.get_xml_text("my xml text")
+    xml_text = (doc.get_xml_fragment("default") << "root").push_text
 
     xml_text << "Hello, World!"
 
@@ -139,7 +139,7 @@ RSpec.describe Y::XMLText do
 
   it "retrieves next node (text or element)" do
     doc = Y::Doc.new
-    root = doc.get_xml_element("my xml element")
+    root = doc.get_xml_fragment("default") << "my xml element"
     a = root.push_text
     b = root << "b"
 
@@ -148,7 +148,7 @@ RSpec.describe Y::XMLText do
 
   it "retrieves parent node" do
     doc = Y::Doc.new
-    root = doc.get_xml_element("my xml element")
+    root = doc.get_xml_fragment("default") << "my xml element"
     a = root.push_text
 
     expect(a.parent.tag).to eq(root.tag)
@@ -156,7 +156,7 @@ RSpec.describe Y::XMLText do
 
   it "retrieves prev node (text or element)" do
     doc = Y::Doc.new
-    root = doc.get_xml_element("my xml element")
+    root = doc.get_xml_fragment("default") << "my xml element"
     a = root << "a"
     b = root.push_text
 
@@ -165,7 +165,7 @@ RSpec.describe Y::XMLText do
 
   it "removes string from text at position" do
     doc = Y::Doc.new
-    xml_text = doc.get_xml_text("my xml text")
+    xml_text = (doc.get_xml_fragment("default") << "root").push_text
     xml_text << "Hello, World!"
 
     xml_text.slice!(0)
@@ -175,7 +175,7 @@ RSpec.describe Y::XMLText do
 
   it "removes string from text staring at position and given length" do
     doc = Y::Doc.new
-    xml_text = doc.get_xml_text("my xml text")
+    xml_text = (doc.get_xml_fragment("default") << "root").push_text
     xml_text << "Hello, World!"
 
     xml_text.slice!(0, 3)
@@ -185,7 +185,7 @@ RSpec.describe Y::XMLText do
 
   it "returns string representation of text" do
     doc = Y::Doc.new
-    xml_text = doc.get_xml_text("my xml text")
+    xml_text = (doc.get_xml_fragment("default") << "root").push_text
     xml_text << "Hello, World!"
 
     expect(xml_text.to_s).to eq("Hello, World!")
@@ -200,14 +200,14 @@ RSpec.describe Y::XMLText do
     end
 
     before do
-      local_xml = local.get_xml_element("my xml")
+      local_xml = local.get_xml_fragment("default") << "my xml"
       local_xml << "A"
       local_xml.insert_text(1, "my text")
       local_xml << "B"
     end
 
     it "retrieves next sibling with document reference set" do
-      remote_xml = remote.get_xml_element("my xml")
+      remote_xml = remote.get_xml_fragment("default").first_child
       first_text = remote_xml[1]
       next_sibling = first_text.next_sibling
 
@@ -215,7 +215,7 @@ RSpec.describe Y::XMLText do
     end
 
     it "retrieves previous sibling with document reference set" do
-      remote_xml = remote.get_xml_element("my xml")
+      remote_xml = remote.get_xml_fragment("default").first_child
       first_text = remote_xml[1]
       prev_sibling = first_text.prev_sibling
 
@@ -226,14 +226,15 @@ RSpec.describe Y::XMLText do
   context "when syncing documents" do
     it "updates remote XMLText from local XMLText" do
       local = Y::Doc.new
-      local_xml_text = local.get_xml_text("my xml text")
+      local_xml_text = (local.get_xml_fragment("default") << "root").push_text
       local_xml_text << "hello"
 
       remote = Y::Doc.new
-      remote_xml_text = remote.get_xml_text("my xml text")
+      remote_fragment = remote.get_xml_fragment("default")
 
       update = local.diff(remote.state)
       remote.sync(update)
+      remote_xml_text = remote_fragment.first_child.first_child
 
       expect(remote_xml_text.to_s).to eq("hello")
     end
