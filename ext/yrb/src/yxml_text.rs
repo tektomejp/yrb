@@ -20,7 +20,8 @@ impl YXmlText {
 
         let hash = ruby.hash_new();
         for (k, v) in self.0.borrow().attributes(tx) {
-            hash.aset(k, v.to_string(tx)).expect("cannot insert into hash");
+            hash.aset(k, v.to_string(tx))
+                .expect("cannot insert into hash");
         }
         hash
     }

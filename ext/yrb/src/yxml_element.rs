@@ -8,8 +8,7 @@ use magnus::{Error, IntoValue, RArray, RHash, Ruby, Value};
 use std::cell::RefCell;
 use yrs::types::Change;
 use yrs::{
-    GetString, Observable, Xml, XmlElementPrelim, XmlElementRef, XmlFragment, XmlOut,
-    XmlTextPrelim,
+    GetString, Observable, Xml, XmlElementPrelim, XmlElementRef, XmlFragment, XmlOut, XmlTextPrelim,
 };
 
 #[magnus::wrap(class = "Y::XMLElement")]
@@ -26,7 +25,8 @@ impl YXmlElement {
 
         let hash = ruby.hash_new();
         for (k, v) in self.0.borrow().attributes(tx) {
-            hash.aset(k, v.to_string(tx)).expect("cannot insert into hash");
+            hash.aset(k, v.to_string(tx))
+                .expect("cannot insert into hash");
         }
         hash
     }

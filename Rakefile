@@ -1,6 +1,10 @@
 # frozen_string_literal: true
 
-require "bundler/gem_tasks"
+require "rake/clean"
+require "bundler/gem_helper"
+
+CLOBBER.include "pkg"
+Bundler::GemHelper.install_tasks(name: "y-rb")
 require "rubygems/package_task"
 require "rake_compiler_dock"
 require "rake/testtask"

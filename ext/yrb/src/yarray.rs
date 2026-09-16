@@ -83,54 +83,55 @@ impl YArray {
         self.0
             .borrow_mut()
             .observe_with(subscription_id, move |transaction, array_event| {
-                    let ruby = unsafe { Ruby::get_unchecked() };
-                    let delta = array_event.delta(transaction);
-                    // let mut changes = RArray::with_capacity(delta.len());
-                    let (changes, errors): (Vec<_>, Vec<_>) = delta
-                        .iter()
-                        .map(|change| {
-                            let payload = ruby.hash_new();
-                            let result =
-                                match change {
-                                    Change::Added(v) => {
-                                        let values = ruby.ary_new();
-                                        for val in v.iter() {
-                                            let value: Value = YValue::from(val.clone()).into();
-                                            values.push(value).expect("cannot push value to array");
-                                        }
-                                        payload.aset(change_added, values)
-                                    }
-                                    Change::Retain(position) => payload
-                                        .aset(change_retain, (*position).into_value_with(&ruby)),
-                                    Change::Removed(position) => payload
-                                        .aset(change_removed, (*position).into_value_with(&ruby)),
-                                };
-
-                            match result {
-                                Ok(()) => Ok(payload),
-                                Err(e) => Err(e),
+                let ruby = unsafe { Ruby::get_unchecked() };
+                let delta = array_event.delta(transaction);
+                // let mut changes = RArray::with_capacity(delta.len());
+                let (changes, errors): (Vec<_>, Vec<_>) = delta
+                    .iter()
+                    .map(|change| {
+                        let payload = ruby.hash_new();
+                        let result = match change {
+                            Change::Added(v) => {
+                                let values = ruby.ary_new();
+                                for val in v.iter() {
+                                    let value: Value = YValue::from(val.clone()).into();
+                                    values.push(value).expect("cannot push value to array");
+                                }
+                                payload.aset(change_added, values)
                             }
-                        })
-                        .partition(Result::is_ok);
+                            Change::Retain(position) => {
+                                payload.aset(change_retain, (*position).into_value_with(&ruby))
+                            }
+                            Change::Removed(position) => {
+                                payload.aset(change_removed, (*position).into_value_with(&ruby))
+                            }
+                        };
 
-                    if errors.is_empty() {
-                        let args_changes = ruby.ary_new();
-                        for change in changes.iter() {
-                            let c = *change.as_ref().unwrap();
-                            args_changes
-                                .push(c)
-                                .expect("cannot push change event to args");
+                        match result {
+                            Ok(()) => Ok(payload),
+                            Err(e) => Err(e),
                         }
+                    })
+                    .partition(Result::is_ok);
 
-                        let args = (args_changes,);
-                        let _ = block.call::<(RArray,), Qnil>(args);
-                        // todo: make sure we respect the result and bubble up the
-                        //  error so that we can return as part of the Result
+                if errors.is_empty() {
+                    let args_changes = ruby.ary_new();
+                    for change in changes.iter() {
+                        let c = *change.as_ref().unwrap();
+                        args_changes
+                            .push(c)
+                            .expect("cannot push change event to args");
                     }
 
-                    // todo: make sure we respect errors and let the method fail by
-                    //  by returning a Result containing an Error
-                });
+                    let args = (args_changes,);
+                    let _ = block.call::<(RArray,), Qnil>(args);
+                    // todo: make sure we respect the result and bubble up the
+                    //  error so that we can return as part of the Result
+                }
+
+                // todo: make sure we respect errors and let the method fail by
+                //  by returning a Result containing an Error
+            });
 
         Ok(subscription_id)
     }

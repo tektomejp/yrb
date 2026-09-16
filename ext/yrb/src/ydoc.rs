@@ -1,10 +1,10 @@
+use crate::utils::next_subscription_id;
 use crate::yarray::YArray;
 use crate::ymap::YMap;
 use crate::ytext::YText;
 use crate::yxml_element::YXmlElement;
 use crate::yxml_fragment::YXmlFragment;
 use crate::yxml_text::YXmlText;
-use crate::utils::next_subscription_id;
 use crate::YTransaction;
 use magnus::block::Proc;
 use magnus::{Error, Integer, RArray, Ruby, Value};
@@ -84,7 +84,10 @@ impl YDoc {
     // top-level shared types). There is no compatible root-level `XmlElementRef` to hand back
     // here any more, so we fail loudly instead of inventing a new, wire-incompatible encoding
     // for what used to be a root `Y::XMLElement`. Callers should migrate to `get_xml_fragment`.
-    pub(crate) fn ydoc_get_or_insert_xml_element(&self, _name: String) -> Result<YXmlElement, Error> {
+    pub(crate) fn ydoc_get_or_insert_xml_element(
+        &self,
+        _name: String,
+    ) -> Result<YXmlElement, Error> {
         let ruby = Ruby::get().unwrap();
         Err(Error::new(
             ruby.exception_runtime_error(),
