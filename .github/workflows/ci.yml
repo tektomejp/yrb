@@ -4,10 +4,29 @@ on:
   push:
     branches:
       - main
+      - upgrade/yrs-0.27
+    tags:
+      - 'v*'
 
   pull_request:
+  workflow_dispatch:
 
 jobs:
+  fresh_install:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ["ubuntu-latest", "macos-latest"]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oxidize-rb/actions/setup-ruby-and-rust@main
+        with:
+          ruby-version: "4.0"
+          bundler-cache: false
+          cargo-cache: false
+      - name: Verify a fresh Git installation replaces the broken build dependency
+        run: ruby test/fresh_install.rb
+
   ci:
     runs-on: ${{ matrix.os }}
     strategy:
