@@ -8,7 +8,7 @@ repository = "https://github.com/y-crdt/yrb"
 
 [dependencies]
 magnus = "0.8"
-thiserror = "2.0.17"
+thiserror = "2.0.19"
 yrs = "0.27.2"
 rb-sys = { version = "0.9", features = ["stable-api-compiled-fallback"] }
 
