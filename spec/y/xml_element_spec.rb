@@ -3,14 +3,14 @@
 RSpec.describe Y::XMLElement do
   it "creates new XMLElement" do
     doc = Y::Doc.new
-    xml_element = doc.get_xml_element("root")
+    xml_element = doc.get_xml_fragment("default") << "root"
 
     expect(xml_element.to_s).to eq("<root></root>")
   end
 
   it "inserts new node at index" do
     doc = Y::Doc.new
-    xml_element = doc.get_xml_element("root")
+    xml_element = doc.get_xml_fragment("default") << "root"
     xml_element[0] = "firstNode"
 
     expect(xml_element.to_s).to eq("<root><firstNode></firstNode></root>")
@@ -18,7 +18,7 @@ RSpec.describe Y::XMLElement do
 
   it "retrieve node from index" do
     doc = Y::Doc.new
-    xml_element = doc.get_xml_element("root")
+    xml_element = doc.get_xml_fragment("default") << "root"
     xml_element[0] = "firstNode"
 
     expect(xml_element[0].to_s).to eq("<firstNode></firstNode>")
@@ -26,7 +26,7 @@ RSpec.describe Y::XMLElement do
 
   it "retrieve attrs" do
     doc = Y::Doc.new
-    xml_element = doc.get_xml_element("my xml")
+    xml_element = doc.get_xml_fragment("default") << "my xml"
     xml_element.attr_name = "Hello"
 
     expect(xml_element.attrs).to eq({ "name" => "Hello" })
@@ -34,7 +34,7 @@ RSpec.describe Y::XMLElement do
 
   it "attributes is an alias to attrs" do
     doc = Y::Doc.new
-    xml_element = doc.get_xml_element("my xml")
+    xml_element = doc.get_xml_fragment("default") << "my xml"
     xml_element.attr_name = "Hello"
 
     expect(xml_element.attributes).to eq({ "name" => "Hello" })
@@ -42,7 +42,7 @@ RSpec.describe Y::XMLElement do
 
   it "retrieves first child from element" do
     doc = Y::Doc.new
-    xml_element = doc.get_xml_element("my xml")
+    xml_element = doc.get_xml_fragment("default") << "my xml"
     xml_element[0] = "root"
 
     expect(xml_element.first_child.to_s).to eq("<root></root>")
@@ -50,7 +50,7 @@ RSpec.describe Y::XMLElement do
 
   it "inserts text into element at position" do
     doc = Y::Doc.new
-    xml_element = doc.get_xml_element("root")
+    xml_element = doc.get_xml_fragment("default") << "root"
     xml_element.insert_text(0)
 
     expect(xml_element.to_s).to eq("<root></root>")
@@ -58,7 +58,7 @@ RSpec.describe Y::XMLElement do
 
   it "retrieves adjacent element or text (next)" do
     doc = Y::Doc.new
-    xml_element = doc.get_xml_element("my xml")
+    xml_element = doc.get_xml_fragment("default") << "my xml"
     a = xml_element << "A"
     b = xml_element << "B"
 
@@ -67,7 +67,7 @@ RSpec.describe Y::XMLElement do
 
   it "retrieves parent element" do
     doc = Y::Doc.new
-    xml_element = doc.get_xml_element("my xml")
+    xml_element = doc.get_xml_fragment("default") << "my xml"
     a = xml_element << "A"
 
     expect(a.parent.tag).to eq(xml_element.tag)
@@ -75,7 +75,7 @@ RSpec.describe Y::XMLElement do
 
   it "retrieves adjacent element or text (previous)" do
     doc = Y::Doc.new
-    xml_element = doc.get_xml_element("my xml")
+    xml_element = doc.get_xml_fragment("default") << "my xml"
     a = xml_element << "A"
     b = xml_element << "B"
 
@@ -84,7 +84,7 @@ RSpec.describe Y::XMLElement do
 
   it "pushes child to the end of the child list" do
     doc = Y::Doc.new
-    xml_element = doc.get_xml_element("my xml")
+    xml_element = doc.get_xml_fragment("default") << "my xml"
     xml_element << "A"
     b = xml_element << "B"
 
@@ -93,7 +93,7 @@ RSpec.describe Y::XMLElement do
 
   it "push_child functions as an alias to <<" do
     doc = Y::Doc.new
-    xml_element = doc.get_xml_element("my xml")
+    xml_element = doc.get_xml_fragment("default") << "my xml"
     xml_element.push_child "A"
     b = xml_element.push_child "B"
 
@@ -102,7 +102,7 @@ RSpec.describe Y::XMLElement do
 
   it "creates and inserts new text as last child of this element" do
     doc = Y::Doc.new
-    xml_element = doc.get_xml_element("root")
+    xml_element = doc.get_xml_fragment("default") << "root"
     xml_element.push_text
 
     expect(xml_element.to_s).to eq("<root></root>")
@@ -110,7 +110,7 @@ RSpec.describe Y::XMLElement do
 
   it "returns size of child list" do
     doc = Y::Doc.new
-    xml_element = doc.get_xml_element("my xml")
+    xml_element = doc.get_xml_fragment("default") << "my xml"
     xml_element << "A"
     xml_element << "B"
 
@@ -119,7 +119,7 @@ RSpec.describe Y::XMLElement do
 
   it "returns string representation of element" do
     doc = Y::Doc.new
-    xml_element = doc.get_xml_element("root")
+    xml_element = doc.get_xml_fragment("default") << "root"
     a = xml_element << "A"
     a << "B"
 
@@ -128,7 +128,7 @@ RSpec.describe Y::XMLElement do
 
   it "adds child to the front of the child list" do
     doc = Y::Doc.new
-    xml_element = doc.get_xml_element("my xml")
+    xml_element = doc.get_xml_fragment("default") << "my xml"
     xml_element.unshift_child "A"
     b = xml_element.unshift_child "B"
 
@@ -137,7 +137,7 @@ RSpec.describe Y::XMLElement do
 
   it "creates and inserts new text as first child of this element" do
     doc = Y::Doc.new
-    xml_element = doc.get_xml_element("root")
+    xml_element = doc.get_xml_fragment("default") << "root"
     xml_element.unshift_text
 
     expect(xml_element.to_s).to eq("<root></root>")
@@ -146,15 +146,16 @@ RSpec.describe Y::XMLElement do
   context "when syncing documents" do
     it "updates remote xml from local xml" do
       local = Y::Doc.new
-      local_xml = local.get_xml_element("root")
+      local_xml = local.get_xml_fragment("default") << "root"
       a = local_xml << "A"
       a << "B"
 
       remote = Y::Doc.new
-      remote_xml = remote.get_xml_element("root")
+      remote_fragment = remote.get_xml_fragment("default")
 
       update = local.diff(remote.state)
       remote.sync(update)
+      remote_xml = remote_fragment.first_child
 
       expect(remote_xml.to_s).to eq("<root><A><B></B></A></root>")
     end
@@ -162,7 +163,7 @@ RSpec.describe Y::XMLElement do
 
   context "when inserting elements" do
     let(:local) { Y::Doc.new }
-    let(:local_xml) { local.get_xml_element("my xml") }
+    let(:local_xml) { local.get_xml_fragment("default") << "my xml" }
 
     it "returns newly created element" do
       node = local_xml << "A"
@@ -192,7 +193,7 @@ RSpec.describe Y::XMLElement do
 
   context "when traversing elements" do
     let!(:local) { Y::Doc.new }
-    let!(:local_xml) { local.get_xml_element("my xml") }
+    let!(:local_xml) { local.get_xml_fragment("default") << "my xml" }
     let!(:first_child) { local_xml << "A" }
     let(:remote) do
       doc = Y::Doc.new
@@ -209,28 +210,28 @@ RSpec.describe Y::XMLElement do
     end
 
     it "retrieves first_child with document reference set" do
-      remote_xml = remote.get_xml_element("my xml")
+      remote_xml = remote.get_xml_fragment("default").first_child
       first_child = remote_xml.first_child
 
       expect(first_child.document).to eq(remote)
     end
 
     it "retrieves node at index 0 with document reference set" do
-      remote_xml = remote.get_xml_element("my xml")
+      remote_xml = remote.get_xml_fragment("default").first_child
       first_child = remote_xml[0]
 
       expect(first_child.document).to eq(remote)
     end
 
     it "retrieves node at index 1 with document reference set" do
-      remote_xml = remote.get_xml_element("my xml")
+      remote_xml = remote.get_xml_fragment("default").first_child
       first_child = remote_xml[1]
 
       expect(first_child.document).to eq(remote)
     end
 
     it "retrieves next sibling with document reference set" do
-      remote_xml = remote.get_xml_element("my xml")
+      remote_xml = remote.get_xml_fragment("default").first_child
       first_child = remote_xml.first_child
       next_sibling = first_child.next_sibling
 
@@ -238,7 +239,7 @@ RSpec.describe Y::XMLElement do
     end
 
     it "retrieves previous sibling with document reference set" do
-      remote_xml = remote.get_xml_element("my xml")
+      remote_xml = remote.get_xml_fragment("default").first_child
       last_child = remote_xml[1]
       prev_sibling = last_child.prev_sibling
 
@@ -246,7 +247,7 @@ RSpec.describe Y::XMLElement do
     end
 
     it "retrieves parent with document reference set" do
-      remote_xml = remote.get_xml_element("my xml")
+      remote_xml = remote.get_xml_fragment("default").first_child
       parent = remote_xml[1].parent
 
       expect(parent.document).to eq(remote)
@@ -257,7 +258,7 @@ RSpec.describe Y::XMLElement do
   context "when changing" do
     it "invokes callback" do
       local = Y::Doc.new
-      xml_element = local.get_xml_element("my xml element")
+      xml_element = local.get_xml_fragment("default") << "my xml element"
 
       called = nil
       listener = proc { |changes| called = changes }
@@ -278,7 +279,7 @@ RSpec.describe Y::XMLElement do
 
     it "supports block as callback argument" do
       local = Y::Doc.new
-      xml_element = local.get_xml_element("my xml element")
+      xml_element = local.get_xml_fragment("default") << "my xml element"
 
       called = nil
 
@@ -305,7 +306,7 @@ RSpec.describe Y::XMLElement do
 
       changes = []
 
-      xml_element = local.get_xml_element("root")
+      xml_element = local.get_xml_fragment("default") << "root"
       xml_element.attach(proc { |delta| changes << delta })
 
       local.transact do
