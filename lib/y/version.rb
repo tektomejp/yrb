@@ -6,5 +6,5 @@ module Y
   # that stops deleted Pages media reappearing. 0.8.0 marks the modern-yrs build
   # and keeps it off rubygems so the app can only ever resolve it from the
   # vendored gem, never the unpatched upstream 0.7.0.
-  VERSION = "0.8.1"
+  VERSION = "0.8.2"
 end
