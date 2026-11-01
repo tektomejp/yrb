@@ -10,7 +10,7 @@ repository = "https://github.com/y-crdt/yrb"
 magnus = "0.8"
 thiserror = "2.0.19"
 yrs = "0.27.2"
-rb-sys = { version = "0.9", features = ["stable-api-compiled-fallback"] }
+rb-sys = { version = "0.9.130", features = ["stable-api-compiled-fallback"] }
 
 [dev-dependencies]
 magnus = { version = "0.8", features = ["embed"] }
