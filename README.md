@@ -9,7 +9,7 @@
 >
 > **Version `0.8.0`:** a minor bump above upstream `0.7.0`, marking the modern-`yrs` rebuild and keeping it above the unpatched upstream gem.
 >
-> **Consumed by:** the Tektome `computer` app, which vendors the prebuilt gem (see that repo's `docs/pages-yrs-vendored-gem.md`).
+> **Consumed by:** the Tektome `computer` app, which installs the precompiled gems from this repository's GitHub Pages gem index (`source "https://tektomejp.github.io/yrb/"`), pinned by sha256 in its `Gemfile.lock`. A `v*` tag runs `.github/workflows/gem.yml`, which builds the platform gems and the source gem, attaches them to the GitHub release with `SHA256SUMS` and build provenance, and republishes the index.
 >
 > **Upstreamable:** this is a clean forward port and could be offered back to `y-crdt/yrb` as a pull request.
 <!-- END FORK NOTICE -->

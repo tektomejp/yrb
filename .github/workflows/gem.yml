@@ -1,18 +1,38 @@
-name: Build native gems
+name: Build and release native gems
+
+# Builds the precompiled platform gems and the source gem. On a v* tag it also
+# attaches them to the GitHub release with a SHA256SUMS file and build
+# provenance, then publishes a RubyGems compact index of every release's gems to
+# GitHub Pages, which computer's Gemfile names as the y-rb source. Consumers pin
+# each gem's sha256 in their Gemfile.lock CHECKSUMS, so the index is only ever
+# trusted at lock time.
 
 on:
   workflow_dispatch:
+  pull_request:
   push:
     branches:
       - main
+      - upgrade/yrs-0.27
     tags:
       - 'v*'
 
+permissions:
+  contents: read
+
+env:
+  RB_SYS_VERSION: "0.9.130"
+  # Two or more versions make a fat gem with lib/<ver>/yrb.so. With one, the
+  # cross build writes lib/yrb.so, which rake-compiler maps to the host build
+  # too, so aarch64-linux and x64-mingw-ucrt relink with the host gcc and fail.
+  RUBY_VERSIONS: "3.4,4.0"
+
 jobs:
   native_gem:
-    name: Compile native gem
+    name: Compile ${{ matrix.platform }}
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         platform:
           - "aarch64-linux-gnu"
@@ -23,22 +43,118 @@ jobs:
           - "x86_64-linux-musl"
           - "x64-mingw-ucrt"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: oxidize-rb/actions/setup-ruby-and-rust@main
+      - uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
         with:
-          rubygems: latest
           ruby-version: "4.0"
-          bundler-cache: false
-          cargo-cache: true
-          cargo-vendor: true
 
-      - uses: oxidize-rb/actions/cross-gem@v1
-        id: cross-gem
+      - name: Cross-compile in the rb-sys image for this platform
+        run: |
+          gem install --no-document rb_sys -v "$RB_SYS_VERSION"
+          rb-sys-dock --platform "${{ matrix.platform }}" --ruby-versions "$RUBY_VERSIONS" --build
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          platform: ${{ matrix.platform }}
-          ruby-versions: '3.1,3.2,3.3,3.4,4.0'
+          name: gem-${{ matrix.platform }}
+          path: pkg/*-${{ matrix.platform }}.gem
+          if-no-files-found: error
 
-      - name: Display structure of built gems
-        run: ls -R
-        working-directory: pkg/
+  source_gem:
+    name: Package the source gem
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+        with:
+          ruby-version: "4.0"
+
+      - name: Build the gem and check it carries the Cargo lockfile
+        run: |
+          mkdir -p pkg
+          gem build y-rb.gemspec --output "pkg/y-rb-$(ruby -r./lib/y/version -e 'print Y::VERSION').gem"
+          tar -xOf pkg/*.gem data.tar.gz | tar -tz | grep -qx Cargo.lock
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: gem-ruby
+          path: pkg/*.gem
+          if-no-files-found: error
+
+  release:
+    name: Attach the gems to the release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [native_gem, source_gem]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: gem-*
+          path: pkg
+          merge-multiple: true
+
+      - name: Check the tag matches every gem's version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          for gem in pkg/*.gem; do
+            case "$(basename "$gem")" in
+              "y-rb-$version.gem" | "y-rb-$version-"*.gem) ;;
+              *) echo "::error::$gem does not match tag $GITHUB_REF_NAME"; exit 1 ;;
+            esac
+          done
+
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: pkg/*.gem
+
+      - name: Create the release with the gems and their checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          (cd pkg && sha256sum -- *.gem > SHA256SUMS)
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag \
+            --title "$GITHUB_REF_NAME" --notes "Precompiled y-rb gems. Verify with: gh attestation verify <gem> --repo $GITHUB_REPOSITORY" \
+            pkg/*.gem pkg/SHA256SUMS
+
+  index:
+    name: Publish the gem index to GitHub Pages
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+        with:
+          ruby-version: "4.0"
+
+      - name: Index every release's gems
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p site/gems
+          gh release list --repo "$GITHUB_REPOSITORY" --limit 1000 --json tagName --jq '.[].tagName' |
+            while read -r tag; do
+              gh release download "$tag" --repo "$GITHUB_REPOSITORY" --dir "release-$tag" --pattern '*.gem' --pattern SHA256SUMS || continue
+              [ -f "release-$tag/SHA256SUMS" ] || continue
+              (cd "release-$tag" && sha256sum --check --strict SHA256SUMS)
+              cp "release-$tag"/*.gem site/gems/
+            done
+          gem install --no-document rubygems-generate_index -v 1.2.0
+          gem generate_index --directory site
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site
+
+      - id: deploy
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
