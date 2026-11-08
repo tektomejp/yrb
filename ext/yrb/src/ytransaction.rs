@@ -27,6 +27,32 @@ impl<'doc> From<TransactionMut<'doc>> for YTransaction {
 
 // API which is eventually publicly exposed
 impl YTransaction {
+    pub(crate) fn ytransaction_pending(&self) -> bool {
+        self.transaction().as_ref().unwrap().has_missing_updates()
+    }
+
+    pub(crate) fn ytransaction_apply_with_status(
+        &self,
+        update: Vec<u8>,
+    ) -> Result<(bool, bool, bool), Error> {
+        let (state, deletions) = {
+            let transaction = self.transaction();
+            let transaction = transaction.as_ref().unwrap();
+            (
+                transaction.insert_set().clone(),
+                transaction.delete_set().clone(),
+            )
+        };
+        self.ytransaction_apply_update(update)?;
+        let mut transaction = self.transaction();
+        let transaction = transaction.as_mut().unwrap();
+        Ok((
+            &state != transaction.insert_set(),
+            &deletions != transaction.delete_set(),
+            transaction.has_missing_updates(),
+        ))
+    }
+
     pub(crate) fn ytransaction_apply_update(&self, update: Vec<u8>) -> Result<(), Error> {
         let ruby = Ruby::get().unwrap();
         let update = Update::decode_v1(update.as_slice()).map_err(|error| {

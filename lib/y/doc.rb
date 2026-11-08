@@ -77,6 +77,18 @@ module Y
       diff
     end
 
+    def encode_state_as_update
+      current_transaction { |tx| ydoc_encode_state_as_update(tx) }
+    end
+
+    def pending?
+      current_transaction(&:pending?)
+    end
+
+    def apply_with_status(update)
+      current_transaction { |tx| tx.apply_with_status(update) }
+    end
+
     # Gets or creates a new array by name
     #
     # If the optional values array is present, fills the array up with elements

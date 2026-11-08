@@ -22,6 +22,15 @@ module Y
       ytransaction_apply_update(update)
     end
 
+    def apply_with_status(update)
+      inserted, deleted, pending = ytransaction_apply_with_status(update)
+      { inserted: inserted, deleted: deleted, pending: pending }
+    end
+
+    def pending?
+      ytransaction_pending
+    end
+
     # Applies the v2 encoded update on this document. This will bring the
     # the document to the same state as the one the update is from.
     #
