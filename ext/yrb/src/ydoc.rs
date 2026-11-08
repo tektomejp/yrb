@@ -64,6 +64,14 @@ impl YDoc {
             .map_err(|_e| Error::new(ruby.exception_runtime_error(), "cannot encode diff"))
     }
 
+    pub(crate) fn ydoc_encode_state_as_update(&self, transaction: &YTransaction) -> Vec<u8> {
+        transaction
+            .transaction()
+            .as_ref()
+            .unwrap()
+            .encode_state_as_update_v1(&StateVector::default())
+    }
+
     pub(crate) fn ydoc_get_or_insert_array(&self, name: String) -> YArray {
         let array_ref = self.0.borrow().get_or_insert_array(name.as_str());
         YArray::from(array_ref)

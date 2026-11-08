@@ -7,6 +7,7 @@ use crate::ydoc::YDoc;
 use crate::ymap::YMap;
 use crate::ytext::YText;
 use crate::ytransaction::YTransaction;
+use crate::yupdate::YUpdate;
 use crate::yxml_element::YXmlElement;
 use crate::yxml_fragment::YXmlFragment;
 use crate::yxml_text::YXmlText;
@@ -23,6 +24,7 @@ mod ydoc;
 mod ymap;
 mod ytext;
 mod ytransaction;
+mod yupdate;
 mod yvalue;
 mod yxml_element;
 mod yxml_fragment;
@@ -89,6 +91,15 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     ydoc.define_private_method("ydoc_encode_diff_v2", method!(YDoc::ydoc_encode_diff_v2, 2))
         .expect("cannot define private method: ydoc_encode_diff_v2");
     ydoc.define_private_method(
+        "ydoc_encode_state_as_update",
+        method!(YDoc::ydoc_encode_state_as_update, 1),
+    )?;
+
+    let yupdate = module.define_class("Update", ruby.class_object())?;
+    yupdate.define_singleton_method("new", function!(YUpdate::new, 1))?;
+    yupdate.define_method("insertions", method!(YUpdate::insertions, 0))?;
+    yupdate.define_method("deletions", method!(YUpdate::deletions, 0))?;
+    ydoc.define_private_method(
         "ydoc_get_or_insert_array",
         method!(YDoc::ydoc_get_or_insert_array, 1),
     )
@@ -152,6 +163,15 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     let ytransaction = module
         .define_class("Transaction", ruby.class_object())
         .expect("cannot define class Y::Transaction");
+
+    ytransaction.define_private_method(
+        "ytransaction_pending",
+        method!(YTransaction::ytransaction_pending, 0),
+    )?;
+    ytransaction.define_private_method(
+        "ytransaction_apply_with_status",
+        method!(YTransaction::ytransaction_apply_with_status, 1),
+    )?;
 
     ytransaction
         .define_private_method(
